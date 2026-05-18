@@ -1,16 +1,17 @@
 require('dotenv').config();
 
-const express = require('express');//creates our HTTP server handles routes and requests
-const cors = require('cors');//Allows React Native app to talk to this server
-const helmet = require('helmet');//adds security headers protects against common attacks
-const morgan = require('morgan');//logs every request so we can see what is happening
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
 const authRoutes = require('./src/modules/auth/auth.routes');
+const reportingRoutes = require('./src/modules/reporting/reporting.routes');
 const { createUsersTable } = require('./src/modules/auth/auth.model');
-
+const { createReportsTable } = require('./src/modules/reporting/reporting.model');
+const startNotificationConsumer = require('./src/events/consumers/notification.consumer');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
 
 app.use(helmet());
 app.use(cors());
@@ -27,6 +28,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/reports', reportingRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
@@ -43,12 +45,17 @@ app.use((err, req, res, next) => {
   });
 });
 
-
-createUsersTable().then(() => {
-  console.log('✅ Users table ready');
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+createUsersTable()
+  .then(() => {
+    console.log('✅ Users table ready');
+    return createReportsTable();
+  })
+  .then(() => {
+    console.log('✅ Reports table ready');
+    startNotificationConsumer().catch(console.error);
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
   });
-});
 
 module.exports = app;
