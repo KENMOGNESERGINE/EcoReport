@@ -60,9 +60,13 @@ const createReport = async (
   );
   return result.rows[0];
 };
-const getAllReports = async () => {
+const getAllReports = async (page = 1, limit = 10) => {
+  const offset = (page - 1) * limit;
   const result = await db.query(
-    'SELECT * FROM reports ORDER BY created_at DESC'
+    `SELECT * FROM reports
+     ORDER BY created_at DESC
+     LIMIT $1 OFFSET $2`,
+    [limit, offset]
   );
   return result.rows;
 };
@@ -164,6 +168,8 @@ const getComments = async (reportId) => {
   );
   return result.rows;
 };
+
+
 // CORRECT ✅
 module.exports = {
   createReportsTable,

@@ -77,10 +77,23 @@ const createReportWithPhoto = async (req, res) => {
 
 const getAllReports = async (req, res) => {
   try {
-    const reports = await reportingService.getAllReports();
-    res.status(200).json({ success: true, data: reports });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const reports = await reportingService.getAllReports(
+      page,
+      limit
+    );
+    res.status(200).json({
+      success: true,
+      page,
+      limit,
+      data: reports,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -96,14 +109,6 @@ const getReportById = async (req, res) => {
   }
 };
 
-const getMyReports = async (req, res) => {
-  try {
-    const reports = await reportingService.getMyReports(req.user.userId);
-    res.status(200).json({ success: true, data: reports });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
 
 const updateReport = async (req, res) => {
   try {
@@ -236,14 +241,30 @@ const getComments = async (req, res) => {
     });
   }
 };
+const getMyReports = async (req, res) => {
+  try {
+    const reports = await reportingService.getMyReports(
+      req.user.userId
+    );
+    res.status(200).json({
+      success: true,
+      data: reports,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
 module.exports = {
   createReport,
   createReportWithPhoto,
   getAllReports,
   getReportById,
-  getMyReports,
   updateReport,
+  getMyReports ,
   updateReportStatus,
   getNearbyReports,
   getReportStats,

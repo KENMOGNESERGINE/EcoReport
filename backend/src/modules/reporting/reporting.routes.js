@@ -4,6 +4,8 @@ const reportingController = require('./reporting.controller');
 const authMiddleware = require('../../middleware/auth');
 const upload = require('../../shared/upload');
 
+
+
 // PUBLIC routes
 router.get('/', reportingController.getAllReports);
 router.get('/nearby', reportingController.getNearbyReports);

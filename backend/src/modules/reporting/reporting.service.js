@@ -32,8 +32,8 @@ const createReport = async (
   return report;
 };
 
-const getAllReports = async () => {
-  return await reportingModel.getAllReports();
+const getAllReports = async (page, limit) => {
+  return await reportingModel.getAllReports(page, limit);
 };
 
 const getReportById = async (id) => {
