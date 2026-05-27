@@ -4,10 +4,17 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+
 const authRoutes = require('./src/modules/auth/auth.routes');
 const reportingRoutes = require('./src/modules/reporting/reporting.routes');
+const campaignsRoutes = require('./src/modules/campaigns/campaigns.routes');
+const rewardsRoutes = require('./src/modules/rewards/rewards.routes');
+const governmentRoutes = require('./src/modules/government/government.routes');
+const associationRoutes = require('./src/modules/association/association.routes');
+const adminRoutes = require('./src/modules/admin/admin.routes');
+
 const { createUsersTable } = require('./src/modules/auth/auth.model');
-const { createReportsTable } = require('./src/modules/reporting/reporting.model');
+const { createReportsTable, createCampaignsTable } = require('./src/modules/reporting/reporting.model');
 const startNotificationConsumer = require('./src/events/consumers/notification.consumer');
 const startStatusConsumer = require('./src/events/consumers/status.consumer');
 
@@ -30,6 +37,11 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/reports', reportingRoutes);
+app.use('/api/campaigns', campaignsRoutes);
+app.use('/api/rewards', rewardsRoutes);
+app.use('/api/government', governmentRoutes);
+app.use('/api/association', associationRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
@@ -53,6 +65,10 @@ createUsersTable()
   })
   .then(() => {
     console.log('✅ Reports table ready');
+    return createCampaignsTable();
+  })
+  .then(() => {
+    console.log('✅ Campaigns table ready');
     startNotificationConsumer().catch(console.error);
     startStatusConsumer().catch(console.error);
     app.listen(PORT, () => {

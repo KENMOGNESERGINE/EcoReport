@@ -28,10 +28,55 @@ const createReportsTable = async () => {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `);
-
-  
 };
 
+const createCampaignsTable = async () => {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS campaigns (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(150) NOT NULL,
+      description TEXT NOT NULL,
+      association_id INTEGER REFERENCES users(id),
+      location VARCHAR(255) NOT NULL,
+      date TIMESTAMP NOT NULL,
+      max_participants INTEGER DEFAULT 50,
+      status VARCHAR(50) DEFAULT 'upcoming',
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS campaign_participants (
+      id SERIAL PRIMARY KEY,
+      campaign_id INTEGER REFERENCES campaigns(id),
+      citizen_id INTEGER REFERENCES users(id),
+      joined_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS rewards (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id),
+      points INTEGER DEFAULT 0,
+      badge_name VARCHAR(100),
+      reason VARCHAR(255),
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS assignments (
+      id SERIAL PRIMARY KEY,
+      report_id INTEGER REFERENCES reports(id),
+      agent_id INTEGER REFERENCES users(id),
+      assigned_by INTEGER REFERENCES users(id),
+      status VARCHAR(50) DEFAULT 'assigned',
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+};
 const createReport = async (
   title,
   description,
@@ -173,6 +218,7 @@ const getComments = async (reportId) => {
 // CORRECT ✅
 module.exports = {
   createReportsTable,
+  createCampaignsTable,
   createReport,
   getAllReports,
   getReportById,
@@ -183,5 +229,5 @@ module.exports = {
   getReportStats,
   deleteReport,
   addComment,
-getComments,
+  getComments,
 };
