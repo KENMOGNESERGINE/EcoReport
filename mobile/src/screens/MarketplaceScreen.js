@@ -5,7 +5,7 @@ import {
   StatusBar, ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import api from '../services/api';
+import { marketplaceService as api } from '../services/api';
 
 const COLORS = {
   green: '#1a7a4a', greenLight: '#e8f5ee', greenDark: '#0d4a28',

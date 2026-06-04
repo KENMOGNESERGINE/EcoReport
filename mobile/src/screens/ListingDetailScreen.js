@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import MapView, { Marker } from '../components/MapViewWrapper';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import { marketplaceService as api } from '../services/api';
 
 const { width } = Dimensions.get('window');
 const COLORS = {

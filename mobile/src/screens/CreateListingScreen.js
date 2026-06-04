@@ -10,7 +10,7 @@ import { Audio } from 'expo-av';
 import { Camera } from '../components/CameraWrapper';
 import MapView, { Marker } from '../components/MapViewWrapper';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import { marketplaceService as api } from '../services/api';
 
 const COLORS = {
   green: '#1a7a4a', greenLight: '#e8f5ee', greenDark: '#0d4a28',
