@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+mobile/node_modules/
+
+# Environment
+.env
+backend/.env
+
+# Database
+*.db
+backend/ecotrade.db
+
+# Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Expo
+mobile/.expo/
+mobile/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

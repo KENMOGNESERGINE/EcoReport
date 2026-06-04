@@ -1,27 +1,64 @@
 version: '3.8'
 
 services:
+
+  # ── PostgreSQL with PostGIS ───────────────────────────────
   postgres:
-    image: postgres:15-alpine
-    container_name: ecoreport-db
+    image: postgis/postgis:15-3.4
+    container_name: wastecycle-postgres
     environment:
-      POSTGRES_DB: ecoreport
+      POSTGRES_DB: wastecycle
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres123
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - wastecycle-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d wastecycle"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: ecoreport-rabbitmq
+  # ── Node.js Backend API ───────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: wastecycle-backend
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "3000:3000"
+    volumes:
+      - ./backend/uploads:/app/uploads
     environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin123
+      PORT: 3000
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: wastecycle
+      DB_USER: postgres
+      DB_PASSWORD: postgres123
+      JWT_SECRET: wastecycle_secret_change_in_production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - wastecycle-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  wastecycle-network:
+    driver: bridge
 
 volumes:
-  postgres-data:
+  postgres_data:
