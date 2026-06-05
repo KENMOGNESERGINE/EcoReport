@@ -1,112 +1,223 @@
-# ♻ EcoTrade — Recycling Marketplace
+# 🌿 EcoReport — Waste Reporting & Recycling Marketplace
 
-A full-stack React Native + Node.js marketplace for buying and selling recyclable materials.
+[![GitHub](https://img.shields.io/badge/GitHub-EcoReport-green)](https://github.com/KENMOGNESERGINE/EcoReport)
+[![Docker](https://img.shields.io/badge/Docker-nkeni%2Fecoreport--backend-blue)](https://hub.docker.com/r/nkeni/ecoreport-backend)
 
----
-
-## Project Structure
-
-```
-ecore/
-├── backend/              ← Node.js + Express API
-│   ├── server.js         ← Main API server (all routes)
-│   ├── database.js       ← SQLite setup + migrations
-│   ├── uploads/          ← Uploaded images
-│   ├── package.json
-│   └── Dockerfile
-├── mobile/               ← React Native (Expo) app
-│   ├── App.js            ← Navigation root
-│   ├── src/
-│   │   ├── context/
-│   │   │   └── AuthContext.js    ← Auth state (JWT)
-│   │   ├── services/
-│   │   │   └── api.js            ← All API calls
-│   │   └── screens/
-│   │       ├── AuthScreen.js          ← Login / Sign Up
-│   │       ├── MarketplaceScreen.js   ← Home feed + filters
-│   │       ├── ListingDetailScreen.js ← Detail + map + payment
-│   │       ├── CreateListingScreen.js ← Post listing + sensors
-│   │       ├── MyListingsScreen.js    ← Seller's listings
-│   │       └── ProfileScreen.js      ← Profile + payments + orders
-│   └── package.json
-└── docker-compose.yml
-```
+EcoReport is a full-stack mobile platform for waste reporting and recycling in Cameroon. Citizens report waste, associations manage cleanups, and government monitors city-wide statistics.
 
 ---
 
-## Setup
+## 🏗️ Architecture
 
-### 1. Backend
+- **Frontend:** React Native (Expo) — role-based navigation for citizen, association, government
+- **Backend:** Node.js + Express REST API
+- **Database:** PostgreSQL with PostGIS
+- **Message Broker:** RabbitMQ (event-driven notifications)
+- **Containerization:** Docker + Docker Compose
+- **Orchestration:** Kubernetes (9 manifests, HPA, rolling updates)
+- **CI/CD:** Jenkins pipeline
+- **Monitoring:** Prometheus + Grafana
+- **Infrastructure:** DatabaseMart VPS (Ubuntu 22.04, 2 cores, 4GB RAM)
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 20+
+- Docker Desktop
+- Git
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/KENMOGNESERGINE/EcoReport.git
+cd EcoReport
+```
+
+### 2. Start backend services
 ```bash
 cd backend
+cp .env.example .env   # Edit with your values
+docker-compose up -d   # Starts PostgreSQL + RabbitMQ
 npm install
-npm run dev        # starts on http://localhost:5000
+npm run dev
 ```
 
-### 2. Mobile
+### 3. Start mobile app
 ```bash
 cd mobile
 npm install
-npx expo start     # scan QR with Expo Go app
+npx expo start --web   # Press 'w' for browser
 ```
 
-### 3. Connect mobile → backend
-
-**Android emulator:** `10.0.2.2:5000` (already set in api.js)
-**Physical device:** Edit `mobile/src/services/api.js`:
-```js
-const BASE_URL = 'http://YOUR_LOCAL_IP:5000';
-```
-Find your IP with `ipconfig` (Windows) or `ifconfig` (Mac/Linux).
-
-### 4. Google Maps API key
-1. Go to https://console.cloud.google.com
-2. Enable **Maps SDK for Android** and **Maps SDK for iOS**
-3. Create an API key
-4. Add it to `mobile/app.json` in both `android.config.googleMaps.apiKey` and `ios.config.googleMapsApiKey`
-
-### 5. Docker (production)
+### 4. Test the API
 ```bash
+curl http://localhost:3000/api/health
+```
+
+---
+
+## 🔑 Environment Variables
+
+```env
+PORT=3000
+NODE_ENV=development
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=wastecycle
+DB_USER=postgres
+DB_PASSWORD=postgres123
+JWT_SECRET=your_secret_here
+JWT_EXPIRES_IN=30d
+RABBITMQ_URL=amqp://guest:guest@localhost:5672
+```
+
+---
+
+## 👥 User Roles
+
+| Role | Capabilities |
+|------|-------------|
+| **Citizen** | Submit reports, view map, join campaigns, buy/sell in marketplace |
+| **Association** | Manage report statuses, create cleanup campaigns |
+| **Government** | View all reports, city-wide statistics dashboard |
+
+### Test Accounts
+```
+Citizen:     citizen@ecoreport.cm  / test1234
+Association: assoc@ecoreport.cm    / test1234
+Government:  gov@ecoreport.cm      / test1234
+```
+
+---
+
+## 📡 API Endpoints
+
+### Authentication
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register new user |
+| POST | `/api/auth/login` | Login and get JWT token |
+| GET  | `/api/auth/me` | Get current user profile |
+
+### Reports
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET  | `/api/reports` | Get all reports (paginated) |
+| POST | `/api/reports` | Submit a new waste report |
+| GET  | `/api/reports/:id` | Get report by ID |
+| PATCH | `/api/reports/:id/status` | Update report status (association/gov) |
+| GET  | `/api/reports/nearby` | Get nearby reports by coordinates |
+| GET  | `/api/reports/stats` | Get report statistics |
+
+### Campaigns
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET  | `/api/campaigns` | Get all campaigns |
+| POST | `/api/campaigns` | Create campaign (association only) |
+| POST | `/api/campaigns/:id/join` | Join a campaign |
+
+### Marketplace
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET  | `/api/listings` | Get all listings |
+| POST | `/api/listings` | Create a listing |
+| POST | `/api/orders` | Place an order |
+| GET  | `/api/orders/me` | Get my orders |
+
+---
+
+## 🐳 Docker Deployment
+
+```bash
+# Build and push image
+docker build -t nkeni/ecoreport-backend:latest ./backend
+docker push nkeni/ecoreport-backend:latest
+
+# Run with Docker Compose
 docker-compose up -d
 ```
 
 ---
 
-## Features
+## ☸️ Kubernetes Deployment
 
-| Feature | Details |
-|---|---|
-| Auth | JWT register/login, 30-day token, profile guard |
-| Listings | Create, browse, filter by category/search, paginated |
-| Images | Multi-image upload, camera capture, gallery picker |
-| Sensors | GPS location (auto-fill city + map pin), microphone (voice notes) |
-| Map | Interactive map pin on create, real Google Maps on detail view |
-| Profile | Personal info, completion bar, national ID required |
-| Payments | MTN MoMo, Orange Money, Bank Transfer accounts |
-| Orders | Buy flow with 2% service fee, order history |
-| Guards | Cannot list without complete profile + payment account |
+```bash
+cd k8s
+kubectl apply -f 00-namespace.yaml
+kubectl apply -f 01-configmap.yaml
+kubectl apply -f 02-secrets.yaml
+kubectl apply -f 03-postgres-pvc.yaml
+kubectl apply -f 04-postgres-deployment.yaml
+kubectl apply -f 05-rabbitmq-deployment.yaml
+kubectl apply -f 06-backend-deployment.yaml
+kubectl apply -f 07-ingress.yaml
+kubectl apply -f 08-hpa.yaml
+
+# Check status
+kubectl get all -n ecoreport
+```
 
 ---
 
-## API Endpoints
+## 📊 Monitoring
+
+```bash
+cd monitoring
+docker-compose -f docker-compose.monitoring.yml up -d
+
+# Prometheus: http://localhost:9090
+# Grafana:    http://localhost:3001 (admin / ecoreport2026)
+```
+
+---
+
+## 🧪 Testing
+
+```bash
+cd backend
+npm test                           # Run all tests
+npm test -- --coverage --forceExit # With coverage report
+```
+
+---
+
+## 📁 Project Structure
 
 ```
-POST /api/auth/register
-POST /api/auth/login
-GET  /api/users/me
-PUT  /api/users/me
-POST /api/users/me/avatar
-GET  /api/users/me/payments
-POST /api/users/me/payments
-DEL  /api/users/me/payments/:id
-GET  /api/listings?category=&search=&page=&limit=
-GET  /api/listings/:id
-POST /api/listings          (multipart/form-data)
-PUT  /api/listings/:id
-DEL  /api/listings/:id
-GET  /api/users/me/listings
-POST /api/listings/:id/images
-POST /api/orders
-GET  /api/orders/me
-GET  /api/health
+EcoReport/
+├── backend/               # Node.js API
+│   ├── src/
+│   │   ├── modules/       # Feature modules (auth, reporting, campaigns...)
+│   │   ├── middleware/    # Auth, role middleware
+│   │   └── shared/        # Database, utilities
+│   ├── server.js
+│   └── Dockerfile
+├── mobile/                # React Native app
+│   ├── src/
+│   │   ├── features/      # Screens by feature
+│   │   ├── navigation/    # Role-based navigation
+│   │   └── shared/        # Components, context, services
+│   └── App.js
+├── k8s/                   # Kubernetes manifests
+├── ansible/               # Ansible playbooks
+├── monitoring/            # Prometheus + Grafana
+├── Jenkinsfile            # CI/CD pipeline
+├── nginx.conf             # Reverse proxy config
+└── docker-compose.yml
 ```
+
+---
+
+## 👨‍💻 Team
+
+| Name | Role | Registration |
+|------|------|-------------|
+| Kenmogne Sergine | Product Owner / Backend Dev |ICTU20233772 |
+| Njobe Loveline Nkeni | Scrum Master / Frontend Dev | ICTU20234424 |
+
+---
+
+## 📄 License
+
+MIT License — ICT University Spring 2026
