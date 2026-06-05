@@ -1,8 +1,23 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { marketplaceService } from '../services/api';
+import { Platform } from 'react-native';
 
 const AuthContext = createContext(null);
+
+const BASE = Platform.OS === 'web' ? 'http://localhost:3000' : 'http://192.168.1.128:3000';
+
+const apiCall = async (method, endpoint, body = null) => {
+  const token = await AsyncStorage.getItem('ecotrade_token');
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res  = await fetch(`${BASE}${endpoint}`, {
+    method, headers,
+    body: body ? JSON.stringify(body) : null,
+  });
+  const data = await res.json();
+  if (!res.ok) throw data;
+  return data;
+};
 
 export const AuthProvider = ({ children }) => {
   const [user,    setUser]    = useState(null);
@@ -14,7 +29,8 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = await AsyncStorage.getItem('ecotrade_token');
       if (token) {
-        const userData = await marketplaceService.getMe();
+        // Use /api/users/me which returns profileComplete + paymentAccounts
+        const userData = await apiCall('GET', '/api/users/me');
         setUser(userData);
       }
     } catch {
@@ -25,34 +41,46 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
-    const res = await marketplaceService.login({ email, password });
-    await marketplaceService.setToken(res.token);
-    await AsyncStorage.setItem('token', res.token);
-    await AsyncStorage.setItem('user', JSON.stringify(res.user));
-    setUser(res.user);
-    return res.user;
+    const res = await apiCall('POST', '/api/auth/login', { email, password });
+    const token    = res.token || res.data?.token;
+    const userData = res.user  || res.data?.user;
+    await AsyncStorage.setItem('ecotrade_token', token);
+    setUser(userData);
+    // Fetch full profile with profileComplete flag
+    try {
+      const full = await apiCall('GET', '/api/users/me');
+      setUser(full);
+      return full;
+    } catch { return userData; }
   };
 
   const register = async (payload) => {
-    const res = await marketplaceService.register(payload);
-    await marketplaceService.setToken(res.token);
-    await AsyncStorage.setItem('token', res.token);
-    await AsyncStorage.setItem('user', JSON.stringify(res.user));
-    setUser(res.user);
-    return res.user;
+    const name = payload.name || `${payload.firstName || ''} ${payload.lastName || ''}`.trim();
+    const res = await apiCall('POST', '/api/auth/register', {
+      name, email: payload.email, password: payload.password, role: payload.role || 'citizen',
+    });
+    const token    = res.token || res.data?.token;
+    const userData = res.user  || res.data?.user;
+    await AsyncStorage.setItem('ecotrade_token', token);
+    setUser(userData);
+    return userData;
   };
 
   const logout = async () => {
-    await marketplaceService.removeToken();
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('user');
+    await AsyncStorage.removeItem('ecotrade_token');
     setUser(null);
   };
 
+  // Always fetch /api/users/me which includes profileComplete + paymentAccounts
   const refreshUser = async () => {
-    const userData = await marketplaceService.getMe();
-    setUser(userData);
-    return userData;
+    try {
+      const userData = await apiCall('GET', '/api/users/me');
+      setUser(userData);
+      return userData;
+    } catch (err) {
+      console.error('refreshUser error:', err);
+      return user;
+    }
   };
 
   const token = user ? 'active' : null;

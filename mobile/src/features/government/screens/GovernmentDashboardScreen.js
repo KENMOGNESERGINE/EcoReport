@@ -1,139 +1,90 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View, Text, ScrollView,
-  TouchableOpacity, ActivityIndicator
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../../shared/context/AuthContext';
-import api from '../../../shared/services/api';
-import AppHeader from '../../../shared/components/AppHeader';
-import styles from '../styles/GovernmentDashboardScreen.styles';
 
-const GovernmentDashboardScreen = ({ navigation }) => {
-  const [stats, setStats] = useState(null);
-  const [hotspots, setHotspots] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+const BASE = 'http://localhost:3000';
+const GREEN = '#1a7a4a';
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const [statsRes, hotspotsRes] = await Promise.all([
-        api.get('/government/stats'),
-        api.get('/government/hotspots'),
-      ]);
-      setStats(statsRes.data.data);
-      setHotspots(hotspotsRes.data.data);
-    } catch (error) {
-      console.log('Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1565C0" />
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <AppHeader
-        title="🏛️ Government"
-        subtitle={`Welcome, ${user?.name}`}
-      />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-
-        {/* Stats Cards */}
-        <Text style={styles.sectionTitle}>📊 Overview</Text>
-        <View style={styles.statsGrid}>
-          <View style={[styles.statCard, styles.statBlue]}>
-            <Text style={styles.statNumber}>
-              {stats?.total_reports || 0}
-            </Text>
-            <Text style={styles.statLabel}>Total Reports</Text>
-          </View>
-          <View style={[styles.statCard, styles.statOrange]}>
-            <Text style={styles.statNumber}>
-              {stats?.pending || 0}
-            </Text>
-            <Text style={styles.statLabel}>Pending</Text>
-          </View>
-          <View style={[styles.statCard, styles.statPurple]}>
-            <Text style={styles.statNumber}>
-              {stats?.in_progress || 0}
-            </Text>
-            <Text style={styles.statLabel}>In Progress</Text>
-          </View>
-          <View style={[styles.statCard, styles.statGreen]}>
-            <Text style={styles.statNumber}>
-              {stats?.resolved || 0}
-            </Text>
-            <Text style={styles.statLabel}>Resolved</Text>
-          </View>
-        </View>
-
-        {/* Citizens */}
-        <View style={styles.citizensCard}>
-          <Text style={styles.citizensIcon}>👥</Text>
-          <View>
-            <Text style={styles.citizensNumber}>
-              {stats?.total_citizens || 0}
-            </Text>
-            <Text style={styles.citizensLabel}>
-              Active Citizens
-            </Text>
-          </View>
-        </View>
-
-        {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
-        <View style={styles.actionsGrid}>
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => navigation.navigate('GovReportsTab')}
-          >
-            <Text style={styles.actionIcon}>📋</Text>
-            <Text style={styles.actionLabel}>View Reports</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => navigation.navigate('GovStats')}
-          >
-            <Text style={styles.actionIcon}>📊</Text>
-            <Text style={styles.actionLabel}>Statistics</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Hotspots */}
-        {hotspots.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>🔥 Waste Hotspots</Text>
-            {hotspots.slice(0, 3).map((spot, index) => (
-              <View key={index} style={styles.hotspotCard}>
-                <Text style={styles.hotspotRank}>#{index + 1}</Text>
-                <View style={styles.hotspotInfo}>
-                  <Text style={styles.hotspotType}>
-                    {spot.waste_type} waste
-                  </Text>
-                  <Text style={styles.hotspotCount}>
-                    {spot.count} reports
-                  </Text>
-                </View>
-                <Text style={styles.hotspotIcon}>🔥</Text>
-              </View>
-            ))}
-          </>
-        )}
-
-      </ScrollView>
-    </View>
-  );
+const apiCall = async (method, endpoint) => {
+  const token = await AsyncStorage.getItem('ecotrade_token');
+  const res = await fetch(`${BASE}${endpoint}`, { headers: { 'Authorization': `Bearer ${token}` } });
+  return res.json();
 };
 
-export default GovernmentDashboardScreen;
+export default function GovernmentDashboardScreen({ navigation }) {
+  const { user }          = useAuth();
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => { loadStats(); }, []);
+
+  const loadStats = async () => {
+    try {
+      const data = await apiCall('GET', '/api/reports/stats');
+      setStats(data.data || data);
+    } catch(e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  if (loading) return <View style={s.center}><ActivityIndicator color={GREEN} size="large" /></View>;
+
+  return (
+    <ScrollView style={s.container}>
+      <View style={s.header}>
+        <Text style={s.title}>Government Dashboard</Text>
+        <Text style={s.sub}>Communauté Urbaine — {user?.name || 'Official'}</Text>
+      </View>
+
+      <View style={s.statsGrid}>
+        {[
+          { label: 'Total Reports', value: stats?.total || 0, color: '#1c2620' },
+          { label: 'Pending',       value: stats?.pending || 0, color: '#e8800a' },
+          { label: 'In Progress',   value: stats?.in_progress || 0, color: '#1565c0' },
+          { label: 'Resolved',      value: stats?.resolved || 0, color: GREEN },
+        ].map(s2 => (
+          <View key={s2.label} style={s.statCard}>
+            <Text style={[s.statNum, { color: s2.color }]}>{s2.value}</Text>
+            <Text style={s.statLabel}>{s2.label}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={s.section}>
+        <Text style={s.sectionTitle}>Quick Actions</Text>
+        <TouchableOpacity style={s.actionBtn} onPress={() => navigation.navigate('Reports')}>
+          <Text style={s.actionIcon}>🗑️</Text>
+          <View>
+            <Text style={s.actionTitle}>All Reports</Text>
+            <Text style={s.actionSub}>View and manage all city reports</Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity style={s.actionBtn} onPress={() => navigation.navigate('Stats')}>
+          <Text style={s.actionIcon}>📈</Text>
+          <View>
+            <Text style={s.actionTitle}>Analytics</Text>
+            <Text style={s.actionSub}>City-wide waste statistics</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+}
+
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f4f7f5' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  header: { backgroundColor: '#1a3a6a', padding: 24, paddingTop: 54 },
+  title: { color: '#fff', fontSize: 24, fontWeight: '800' },
+  sub: { color: 'rgba(255,255,255,0.7)', fontSize: 14, marginTop: 4 },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 12, gap: 8 },
+  statCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, flex: 1, minWidth: '45%', alignItems: 'center', borderWidth: 1, borderColor: '#e0e0e0' },
+  statNum: { fontSize: 32, fontWeight: '800' },
+  statLabel: { fontSize: 12, color: '#6b7c72', marginTop: 4 },
+  section: { backgroundColor: '#fff', margin: 12, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#e0e0e0' },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1c2620', marginBottom: 12 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, backgroundColor: '#f4f7f5', borderRadius: 12, marginBottom: 10 },
+  actionIcon: { fontSize: 28 },
+  actionTitle: { fontSize: 15, fontWeight: '700', color: '#1c2620' },
+  actionSub: { fontSize: 12, color: '#6b7c72', marginTop: 2 },
+});

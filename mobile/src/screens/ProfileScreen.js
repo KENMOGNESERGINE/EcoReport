@@ -5,8 +5,10 @@ import {
   Platform, KeyboardAvoidingView,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
-import { marketplaceService as api } from '../services/api';
+
+const BASE = Platform.OS === 'web' ? 'http://localhost:3000' : 'http://192.168.1.128:3000';
 
 const COLORS = {
   green: '#1a7a4a', greenLight: '#e8f5ee', greenDark: '#0d4a28',
@@ -15,6 +17,16 @@ const COLORS = {
 };
 
 const PM_TYPES = ['MTN Mobile Money', 'Orange Money', 'Bank Transfer'];
+
+async function apiCall(method, endpoint, body = null) {
+  const token = await AsyncStorage.getItem('ecotrade_token');
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res  = await fetch(`${BASE}${endpoint}`, { method, headers, body: body ? JSON.stringify(body) : null });
+  const data = await res.json();
+  if (!res.ok) throw data;
+  return data;
+}
 
 export default function ProfileScreen({ navigation, route }) {
   const { user, logout, refreshUser } = useAuth();
@@ -29,9 +41,9 @@ export default function ProfileScreen({ navigation, route }) {
   const [myListings,  setMyListings]  = useState([]);
   const [loadingData, setLoadingData] = useState(false);
 
-  // Profile form
-  const [firstName, setFirstName] = useState(user?.firstName || '');
-  const [lastName,  setLastName]  = useState(user?.lastName  || '');
+  // Profile form — pre-fill from user
+  const [firstName, setFirstName] = useState(user?.firstName || user?.name?.split(' ')[0] || '');
+  const [lastName,  setLastName]  = useState(user?.lastName  || user?.name?.split(' ').slice(1).join(' ') || '');
   const [phone,     setPhone]     = useState(user?.phone     || '');
   const [city,      setCity]      = useState(user?.city      || '');
   const [idNumber,  setIdNumber]  = useState(user?.idNumber  || '');
@@ -44,33 +56,38 @@ export default function ProfileScreen({ navigation, route }) {
 
   const loadOrders = async () => {
     setLoadingData(true);
-    try { const data = await api.getMyOrders(); setOrders(data); }
+    try { const data = await apiCall('GET', '/api/orders/me'); setOrders(data); }
     catch (e) { console.error(e); }
     finally { setLoadingData(false); }
   };
 
   const loadMyListings = async () => {
     setLoadingData(true);
-    try { const data = await api.getMyListings(); setMyListings(data); }
+    try { const data = await apiCall('GET', '/api/users/me/listings'); setMyListings(data); }
     catch (e) { console.error(e); }
     finally { setLoadingData(false); }
   };
 
   const completionFields = [firstName, lastName, user?.email, phone, city, idNumber];
-  const filledCount = completionFields.filter(Boolean).length;
-  const hasPayment  = (user?.paymentAccounts?.length || 0) > 0;
-  const pct         = Math.round(((filledCount / completionFields.length) * 0.75 + (hasPayment ? 0.25 : 0)) * 100);
+  const filledCount    = completionFields.filter(Boolean).length;
+  const hasPayment     = (user?.paymentAccounts?.length || 0) > 0;
+  const pct            = Math.round(((filledCount / completionFields.length) * 0.75 + (hasPayment ? 0.25 : 0)) * 100);
   const profileComplete = pct >= 95;
 
+  const showMsg = (msg) => {
+    if (typeof window !== 'undefined') window.alert(msg);
+    else Alert.alert('', msg);
+  };
+
   const saveProfile = async () => {
-    if (!firstName || !lastName) return Alert.alert('Required', 'First and last name are required');
+    if (!firstName || !lastName) { showMsg('First and last name are required'); return; }
     setSaving(true);
     try {
-      await api.updateMe({ firstName, lastName, phone, city, idNumber, bio });
+      await apiCall('PUT', '/api/users/me', { firstName, lastName, phone, city, idNumber, bio });
       await refreshUser();
-      Alert.alert('Saved ✅', 'Your profile has been updated.');
+      showMsg('Profile saved successfully!');
     } catch (err) {
-      Alert.alert('Error', err.error || 'Could not save profile');
+      showMsg(err.error || err.message || 'Could not save profile');
     } finally {
       setSaving(false);
     }
@@ -82,57 +99,65 @@ export default function ProfileScreen({ navigation, route }) {
     const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.8, allowsEditing: true, aspect: [1, 1] });
     if (!result.canceled) {
       try {
-        await api.uploadAvatar(result.assets[0].uri);
+        const token = await AsyncStorage.getItem('ecotrade_token');
+        const form  = new FormData();
+        form.append('avatar', { uri: result.assets[0].uri, type: 'image/jpeg', name: 'avatar.jpg' });
+        await fetch(`${BASE}/api/users/me/avatar`, {
+          method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: form,
+        });
         await refreshUser();
-      } catch (err) {
-        Alert.alert('Error', 'Could not upload avatar');
-      }
+      } catch (err) { showMsg('Could not upload avatar'); }
     }
   };
 
   const addPayment = async () => {
-    if (!pmNumber.trim()) return Alert.alert('Required', 'Enter account number');
+    if (!pmNumber.trim()) { showMsg('Enter account number'); return; }
     setAddingPm(true);
     try {
-      await api.addPayment({ type: pmType, number: pmNumber, accountName: pmName });
+      await apiCall('POST', '/api/users/me/payments', { type: pmType, number: pmNumber, accountName: pmName });
       await refreshUser();
       setPmModal(false);
       setPmNumber(''); setPmName('');
-      Alert.alert('Added ✅', `${pmType} has been linked.`);
+      showMsg(`${pmType} account added successfully!`);
     } catch (err) {
-      Alert.alert('Error', err.error || 'Could not add payment method');
+      showMsg(err.error || 'Could not add payment method');
     } finally {
       setAddingPm(false);
     }
   };
 
-  const removePayment = (id) => {
-    Alert.alert('Remove', 'Remove this payment account?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: async () => {
-        await api.deletePayment(id);
-        await refreshUser();
-      }},
-    ]);
+  const removePayment = async (id) => {
+    const confirmed = typeof window !== 'undefined'
+      ? window.confirm('Remove this payment account?')
+      : true;
+    if (!confirmed) return;
+    try {
+      await apiCall('DELETE', `/api/users/me/payments/${id}`);
+      await refreshUser();
+    } catch (err) { showMsg('Could not remove payment account'); }
   };
 
- const handleLogout = () => {
-  if (typeof window !== 'undefined') {
-    if (window.confirm('Are you sure you want to log out?')) logout();
-  } else {
-    Alert.alert('Log Out', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: logout },
-    ]);
-  }
-};
+  const handleLogout = () => {
+    const confirmed = typeof window !== 'undefined'
+      ? window.confirm('Are you sure you want to log out?')
+      : false;
+    if (confirmed) { logout(); return; }
+    if (Platform.OS !== 'web') {
+      Alert.alert('Log Out', 'Are you sure?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Log Out', style: 'destructive', onPress: logout },
+      ]);
+    }
+  };
 
   const TABS = [
-    { key: 'profile', label: 'Profile' },
+    { key: 'profile',  label: 'Profile'  },
     { key: 'payments', label: 'Payments' },
     { key: 'listings', label: 'Listings' },
-    { key: 'orders', label: 'Orders' },
+    { key: 'orders',   label: 'Orders'   },
   ];
+
+  const displayName = `${user?.firstName || user?.name?.split(' ')[0] || ''} ${user?.lastName || user?.name?.split(' ').slice(1).join(' ') || ''}`.trim() || user?.email || '';
 
   return (
     <View style={styles.container}>
@@ -141,15 +166,17 @@ export default function ProfileScreen({ navigation, route }) {
         <TouchableOpacity onPress={pickAvatar} style={styles.avatarContainer}>
           {user?.avatar
             ? <Image source={{ uri: user.avatar }} style={styles.avatar} />
-            : <View style={styles.avatarInitial}><Text style={styles.avatarText}>{(user?.firstName||'?')[0]}{(user?.lastName||'')[0]}</Text></View>
+            : <View style={styles.avatarInitial}>
+                <Text style={styles.avatarText}>{(displayName || '?')[0].toUpperCase()}</Text>
+              </View>
           }
           <View style={styles.avatarEdit}><Text style={{ color: COLORS.white, fontSize: 11 }}>Edit</Text></View>
         </TouchableOpacity>
         <View style={styles.headerInfo}>
-          <Text style={styles.headerName}>{user?.firstName} {user?.lastName}</Text>
+          <Text style={styles.headerName}>{displayName || 'Your Profile'}</Text>
           <Text style={styles.headerEmail}>{user?.email}</Text>
           <View style={[styles.badge, profileComplete ? styles.badgeGreen : styles.badgeAmber]}>
-            <Text style={styles.badgeText}>{profileComplete ? '✅ Profile Complete' : '⚠️ Incomplete'}</Text>
+            <Text style={styles.badgeText}>{profileComplete ? 'Profile Complete' : 'Incomplete'}</Text>
           </View>
         </View>
       </View>
@@ -165,7 +192,7 @@ export default function ProfileScreen({ navigation, route }) {
         </View>
         {!profileComplete && (
           <Text style={styles.progressHint}>
-            {!hasPayment ? '⚠️ Add a payment account to start selling' : `Fill in remaining fields: ${6 - filledCount} left`}
+            {!hasPayment ? 'Add a payment account to start selling' : `Fill in remaining fields: ${6 - filledCount} left`}
           </Text>
         )}
       </View>
@@ -181,7 +208,7 @@ export default function ProfileScreen({ navigation, route }) {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-        {/* ── PROFILE TAB ── */}
+        {/* PROFILE TAB */}
         {activeTab === 'profile' && (
           <View style={styles.section}>
             <View style={styles.formRow}>
@@ -212,13 +239,12 @@ export default function ProfileScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* ── PAYMENTS TAB ── */}
+        {/* PAYMENTS TAB */}
         {activeTab === 'payments' && (
           <View style={styles.section}>
             {!hasPayment && (
               <View style={styles.warningBox}>
-                <Text style={styles.warningIcon}>⚠️</Text>
-                <Text style={styles.warningText}>You must add at least one payment account to post listings and receive payments from buyers.</Text>
+                <Text style={styles.warningText}>Add at least one payment account to post listings and receive payments.</Text>
               </View>
             )}
             {(user?.paymentAccounts || []).map(pm => (
@@ -242,7 +268,7 @@ export default function ProfileScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* ── LISTINGS TAB ── */}
+        {/* LISTINGS TAB */}
         {activeTab === 'listings' && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.newListingBtn} onPress={() => navigation.navigate('CreateListing')}>
@@ -251,7 +277,7 @@ export default function ProfileScreen({ navigation, route }) {
             {loadingData
               ? <ActivityIndicator color={COLORS.green} style={{ marginTop: 30 }} />
               : myListings.length === 0
-                ? <EmptyState icon="📭" title="No listings yet" sub="Post your first recyclable material above" />
+                ? <EmptyState title="No listings yet" sub="Post your first recyclable material above" />
                 : myListings.map(l => (
                     <TouchableOpacity key={l.id} style={styles.listingRow} onPress={() => navigation.navigate('ListingDetail', { listingId: l.id })}>
                       <Image source={{ uri: l.image || 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=200' }} style={styles.listingRowImg} />
@@ -266,27 +292,27 @@ export default function ProfileScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* ── ORDERS TAB ── */}
+        {/* ORDERS TAB */}
         {activeTab === 'orders' && (
           <View style={styles.section}>
             {loadingData
               ? <ActivityIndicator color={COLORS.green} style={{ marginTop: 30 }} />
               : orders.length === 0
-                ? <EmptyState icon="🧾" title="No orders yet" sub="Your purchases will appear here" />
+                ? <EmptyState title="No orders yet" sub="Your purchases will appear here" />
                 : orders.map(o => (
                     <View key={o.id} style={styles.orderCard}>
                       <View style={styles.orderHeader}>
                         <Text style={styles.orderTitle} numberOfLines={1}>{o.listing_title}</Text>
                         <View style={[styles.orderStatus, o.status === 'paid' ? styles.statusPaid : styles.statusPending]}>
-                          <Text style={styles.orderStatusText}>{o.status === 'paid' ? '✅ Paid' : '⏳ Pending'}</Text>
+                          <Text style={styles.orderStatusText}>{o.status === 'paid' ? 'Paid' : 'Pending'}</Text>
                         </View>
                       </View>
-                      <Text style={styles.orderSeller}>Seller: {o.seller_first} {o.seller_last}</Text>
+                      <Text style={styles.orderSeller}>Seller: {o.seller_name || `${o.seller_first || ''} ${o.seller_last || ''}`.trim()}</Text>
                       <View style={styles.orderFooter}>
                         <Text style={styles.orderMethod}>{o.payment_method}</Text>
                         <Text style={styles.orderAmount}>{Number(o.amount).toLocaleString()} XAF</Text>
                       </View>
-                      <Text style={styles.orderDate}>{o.created_at?.slice(0,10)}</Text>
+                      <Text style={styles.orderDate}>{o.created_at?.slice(0, 10)}</Text>
                     </View>
                   ))
             }
@@ -303,7 +329,6 @@ export default function ProfileScreen({ navigation, route }) {
             <View style={styles.modalSheet}>
               <View style={styles.modalHandle} />
               <Text style={styles.modalTitle}>Add Payment Account</Text>
-
               <Text style={styles.fieldLabel}>Account Type</Text>
               <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
                 {PM_TYPES.map(t => (
@@ -312,10 +337,8 @@ export default function ProfileScreen({ navigation, route }) {
                   </TouchableOpacity>
                 ))}
               </View>
-
               <Field label={pmType === 'Bank Transfer' ? 'Account Number *' : 'Phone Number *'} value={pmNumber} onChangeText={setPmNumber} placeholder={pmType === 'Bank Transfer' ? 'Account number' : '+237 6XX XXX XXX'} keyboardType="phone-pad" />
               <Field label="Account Name (optional)" value={pmName} onChangeText={setPmName} placeholder="Name on account" />
-
               <TouchableOpacity style={styles.saveBtn} onPress={addPayment} disabled={addingPm}>
                 {addingPm ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Add Account</Text>}
               </TouchableOpacity>
@@ -339,10 +362,9 @@ function Field({ label, style, ...props }) {
   );
 }
 
-function EmptyState({ icon, title, sub }) {
+function EmptyState({ title, sub }) {
   return (
     <View style={{ alignItems: 'center', paddingVertical: 50 }}>
-      <Text style={{ fontSize: 44, marginBottom: 12 }}>{icon}</Text>
       <Text style={{ fontSize: 17, fontWeight: '700', color: COLORS.text, marginBottom: 4 }}>{title}</Text>
       <Text style={{ fontSize: 14, color: COLORS.muted, textAlign: 'center' }}>{sub}</Text>
     </View>
@@ -386,9 +408,8 @@ const styles = StyleSheet.create({
   saveBtnText: { color: COLORS.white, fontWeight: '700', fontSize: 16 },
   logoutBtn: { backgroundColor: COLORS.surface, borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginTop: 10, borderWidth: 1.5, borderColor: COLORS.red },
   logoutBtnText: { color: COLORS.red, fontWeight: '700', fontSize: 15 },
-  warningBox: { flexDirection: 'row', backgroundColor: COLORS.amberLight, borderRadius: 12, padding: 12, gap: 10, marginBottom: 16, borderWidth: 1, borderColor: COLORS.amber },
-  warningIcon: { fontSize: 20 },
-  warningText: { flex: 1, fontSize: 13, color: '#7a4e00', lineHeight: 20 },
+  warningBox: { backgroundColor: COLORS.amberLight, borderRadius: 12, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: COLORS.amber },
+  warningText: { fontSize: 13, color: '#7a4e00', lineHeight: 20 },
   paymentCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: COLORS.border, gap: 10 },
   pmLogoBox: { width: 44, height: 28, backgroundColor: COLORS.white, borderRadius: 6, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.border },
   pmLogoText: { fontSize: 10, fontWeight: '800', color: COLORS.green },

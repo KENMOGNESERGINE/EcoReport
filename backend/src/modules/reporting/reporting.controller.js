@@ -8,10 +8,27 @@ const {
 const createReport = async (req, res) => {
   try {
     const { title, description, latitude, longitude, wasteType, photoUrl } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.userId || req.user.id;
+
+    // Save base64 photo to file if provided
+    let savedPhotoUrl = null;
+    if (photoUrl && photoUrl.startsWith('data:')) {
+      try {
+        const fs   = require('fs');
+        const path = require('path');
+        const b64  = photoUrl.split(',')[1];
+        const ext  = photoUrl.split(';')[0].split('/')[1] || 'jpg';
+        const fname = 'report_' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+        const uploadsDir = path.join(__dirname, '../../../../uploads');
+        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+        fs.writeFileSync(path.join(uploadsDir, fname), Buffer.from(b64, 'base64'));
+        savedPhotoUrl = fname;
+      } catch (e) { console.error('Photo save error:', e); }
+    }
+
     const report = await reportingService.createReport(
       title, description, userId,
-      latitude, longitude, photoUrl, wasteType
+      latitude, longitude, savedPhotoUrl, wasteType
     );
     res.status(201).json({
       success: true,

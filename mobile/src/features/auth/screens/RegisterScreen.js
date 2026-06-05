@@ -74,7 +74,7 @@ export default function RegisterScreen({ navigation }) {
       const parts = name.trim().split(' ');
       const firstName = parts[0];
       const lastName  = parts.slice(1).join(' ') || parts[0];
-      await marketApi.register({ firstName, lastName, email: email.trim(), password: pass, role });
+      await marketApi.register({ name: name.trim(), email: email.trim(), password: pass, role });
       await login(email.trim(), pass);
     } catch (err) {
       setError(err.error || err.response?.data?.message || 'Registration failed. Please try again.');

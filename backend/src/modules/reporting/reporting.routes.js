@@ -17,8 +17,7 @@ router.get('/:id', reportingController.getReportById);
 router.post(
   '/',
   authMiddleware,
-  upload.single('photo'),
-  reportingController.createReportWithPhoto
+  reportingController.createReport
 );
 router.put(
   '/:id',

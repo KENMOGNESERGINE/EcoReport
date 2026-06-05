@@ -29,7 +29,7 @@ export default function CreateListingScreen({ navigation }) {
   const [condition,   setCondition]   = useState('Sorted & Clean');
   const [quantity,    setQuantity]    = useState('');
   const [price,       setPrice]       = useState('');
-  const [city,        setCity]        = useState('');
+  const [city,        setCity]        = useState(user?.city || '');
   const [description, setDescription] = useState('');
   const [phone,       setPhone]       = useState(user?.phone || '');
   const [images,      setImages]      = useState([]);
@@ -65,14 +65,25 @@ export default function CreateListingScreen({ navigation }) {
 
   // ── GUARD ────────────────────────────────────────────
   if (!user?.profileComplete) {
+    const missingPayment = !user?.paymentAccounts?.length;
     return (
       <View style={styles.guardContainer}>
-        <Text style={styles.guardIcon}>⚠️</Text>
         <Text style={styles.guardTitle}>Complete Your Profile First</Text>
         <Text style={styles.guardText}>
-          You need a complete profile with at least one payment account before creating a listing.
+          {missingPayment
+            ? 'You need to add at least one payment account before creating a listing.'
+            : 'Please fill in your full name, phone, city, and national ID in your profile.'}
         </Text>
-        <TouchableOpacity style={styles.guardBtn} onPress={() => navigation.navigate('Profile')}>
+        <TouchableOpacity style={styles.guardBtn} onPress={() => {
+          // Navigate to the Profile tab
+          if (navigation.navigate) {
+            try { navigation.navigate('Main', { screen: 'Profile' }); } catch(e) {
+              try { navigation.navigate('Profile'); } catch(e2) {
+                navigation.goBack();
+              }
+            }
+          }
+        }}>
           <Text style={styles.guardBtnText}>Go to Profile</Text>
         </TouchableOpacity>
       </View>

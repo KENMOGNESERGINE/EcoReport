@@ -1,166 +1,83 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View, Text, FlatList,
-  TouchableOpacity, RefreshControl
-} from 'react-native';
-import api from '../../../shared/services/api';
-import AppHeader from '../../../shared/components/AppHeader';
-import LoadingScreen from '../../../shared/components/LoadingScreen';
-import EmptyState from '../../../shared/components/EmptyState';
-import styles from '../styles/AssociationCampaignsScreen.styles';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const FILTERS = ['All', 'Upcoming', 'Ongoing', 'Completed'];
+const BASE = 'http://localhost:3000';
+const GREEN = '#1a7a4a';
 
-const AssociationCampaignsScreen = ({ navigation }) => {
-  const [campaigns, setCampaigns] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('All');
-
-  useEffect(() => {
-    fetchCampaigns();
-  }, []);
-
-  const fetchCampaigns = async () => {
-    try {
-      const response = await api.get('/association/campaigns');
-      setCampaigns(response.data.data);
-    } catch (error) {
-      console.log('Error:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const getFilteredCampaigns = () => {
-    if (activeFilter === 'All') return campaigns;
-    return campaigns.filter(c =>
-      c.status === activeFilter.toLowerCase()
-    );
-  };
-
-  const getProgressPercentage = (current, max) => {
-    if (!max || max === 0) return 0;
-    return Math.min((current / max) * 100, 100);
-  };
-
-  const renderCampaign = ({ item }) => (
-    <View style={styles.campaignCard}>
-
-      {/* Header */}
-      <View style={styles.campaignHeader}>
-        <Text style={styles.campaignIcon}>📢</Text>
-        <View style={styles.campaignInfo}>
-          <Text style={styles.campaignTitle}>{item.title}</Text>
-          <Text style={styles.campaignDate}>
-            📅 {new Date(item.date).toLocaleDateString()}
-          </Text>
-        </View>
-        <View style={[styles.statusBadge, {
-          backgroundColor:
-            item.status === 'upcoming' ? '#FF8F00' + '20' :
-            item.status === 'ongoing' ? '#1976D2' + '20' :
-            '#388E3C' + '20'
-        }]}>
-          <Text style={[styles.statusText, {
-            color:
-              item.status === 'upcoming' ? '#FF8F00' :
-              item.status === 'ongoing' ? '#1976D2' :
-              '#388E3C'
-          }]}>
-            {item.status}
-          </Text>
-        </View>
-      </View>
-
-      {/* Location */}
-      <Text style={styles.campaignLocation}>
-        📍 {item.location}
-      </Text>
-
-      {/* Participants Progress */}
-      <View style={styles.progressContainer}>
-        <View style={styles.progressHeader}>
-          <Text style={styles.progressLabel}>👥 Participants</Text>
-          <Text style={styles.progressCount}>
-            {item.participants_count || 0}/{item.max_participants}
-          </Text>
-        </View>
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, {
-            width: `${getProgressPercentage(
-              item.participants_count || 0,
-              item.max_participants
-            )}%`
-          }]} />
-        </View>
-      </View>
-
-    </View>
-  );
-
-  if (loading) return <LoadingScreen message="Loading campaigns..." />;
-
-  return (
-    <View style={styles.container}>
-      <AppHeader
-        title="📢 Campaigns"
-        rightComponent={
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={() => navigation.navigate('CreateCampaign')}
-          >
-            <Text style={styles.createButtonText}>+ New</Text>
-          </TouchableOpacity>
-        }
-      />
-
-      {/* Filter Tabs */}
-      <View style={styles.filterContainer}>
-        {FILTERS.map(filter => (
-          <TouchableOpacity
-            key={filter}
-            style={[
-              styles.filterTab,
-              activeFilter === filter && styles.filterTabActive
-            ]}
-            onPress={() => setActiveFilter(filter)}
-          >
-            <Text style={[
-              styles.filterText,
-              activeFilter === filter && styles.filterTextActive
-            ]}>
-              {filter}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <FlatList
-        data={getFilteredCampaigns()}
-        keyExtractor={item => item.id.toString()}
-        contentContainerStyle={styles.listContent}
-        renderItem={renderCampaign}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); fetchCampaigns(); }}
-            colors={['#2E7D32']}
-          />
-        }
-        ListEmptyComponent={
-          <EmptyState
-            icon="📢"
-            title="No campaigns yet!"
-            subtitle="Create your first cleanup campaign!"
-            buttonText="+ Create Campaign"
-            onButtonPress={() => navigation.navigate('CreateCampaign')}
-          />
-        }
-      />
-    </View>
-  );
+const apiCall = async (method, endpoint, body = null) => {
+  const token = await AsyncStorage.getItem('ecotrade_token');
+  const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+  const res = await fetch(`${BASE}${endpoint}`, { method, headers, body: body ? JSON.stringify(body) : null });
+  return res.json();
 };
 
-export default AssociationCampaignsScreen;
+export default function AssociationCampaignsScreen({ navigation }) {
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading]     = useState(true);
+
+  useEffect(() => { loadCampaigns(); }, []);
+
+  const loadCampaigns = async () => {
+    setLoading(true);
+    try {
+      const data = await apiCall('GET', '/api/campaigns');
+      setCampaigns(data.data || data.campaigns || data || []);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  if (loading) return <View style={s.center}><ActivityIndicator color={GREEN} size="large" /></View>;
+
+  return (
+    <View style={s.container}>
+      <View style={s.header}>
+        <Text style={s.title}>Campaigns</Text>
+        <TouchableOpacity style={s.createBtn} onPress={() => navigation.navigate('CreateCampaign', { onCreated: loadCampaigns })}>
+          <Text style={s.createBtnText}>+ Create</Text>
+        </TouchableOpacity>
+      </View>
+      <FlatList
+        data={campaigns}
+        keyExtractor={i => i.id.toString()}
+        contentContainerStyle={{ padding: 12 }}
+        renderItem={({ item }) => (
+          <View style={s.card}>
+            <Text style={s.cardTitle}>{item.title}</Text>
+            <Text style={s.cardDesc} numberOfLines={2}>{item.description}</Text>
+            <View style={s.cardFooter}>
+              <Text style={s.cardMeta}>📍 {item.location || item.zone || 'Location TBD'}</Text>
+              <Text style={s.cardMeta}>📅 {item.date ? new Date(item.date).toLocaleDateString() : 'TBD'}</Text>
+            </View>
+            <View style={s.participantBadge}>
+              <Text style={s.participantText}>👥 {item.participants_count || 0} participants</Text>
+            </View>
+          </View>
+        )}
+        ListEmptyComponent={
+          <View style={{ alignItems: 'center', marginTop: 60 }}>
+            <Text style={{ fontSize: 44 }}>📣</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1c2620', marginTop: 12 }}>No campaigns yet</Text>
+            <Text style={{ color: '#6b7c72', marginTop: 4 }}>Create your first cleanup campaign</Text>
+          </View>
+        }
+      />
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f4f7f5' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  header: { backgroundColor: '#0d4a28', padding: 24, paddingTop: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  title: { color: '#fff', fontSize: 22, fontWeight: '800' },
+  createBtn: { backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8 },
+  createBtnText: { color: '#0d4a28', fontWeight: '700', fontSize: 14 },
+  card: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#e0e0e0' },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: '#1c2620', marginBottom: 6 },
+  cardDesc: { fontSize: 13, color: '#6b7c72', marginBottom: 10 },
+  cardFooter: { flexDirection: 'row', gap: 14, marginBottom: 8 },
+  cardMeta: { fontSize: 12, color: '#6b7c72' },
+  participantBadge: { backgroundColor: '#e8f5ee', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start' },
+  participantText: { color: GREEN, fontSize: 12, fontWeight: '600' },
+});
