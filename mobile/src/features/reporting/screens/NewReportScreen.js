@@ -88,30 +88,47 @@ const NewReportScreen = ({ navigation }) => {
     }
   };
 
+  const convertToBase64 = async (uri) => {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.log('Base64 error:', error);
+      return null;
+    }
+  };
+
   const handleSubmit = async () => {
-  console.log('Submitting:', { title, description, location, wasteType });
-  if (!title || !description) {
-    setError('Please fill in title and description!');
-    return;
-  }
-  
+    if (!title || !description) {
+      setError('Please fill in title and description!');
+      return;
+    }
     try {
       setLoading(true);
       setError('');
+
+      let photoUrl = null;
+      if (photo) {
+        photoUrl = await convertToBase64(photo);
+      }
+
       await api.post('/reports', {
-  title,
-  description,
-  latitude: location ? location.latitude : 3.8480,
-  longitude: location ? location.longitude : 11.5021,
-  wasteType,
-});
-      Alert.alert(
-        '✅ Success!',
-        'Your waste report has been submitted!',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+        title,
+        description,
+        latitude: location ? location.latitude : 3.8480,
+        longitude: location ? location.longitude : 11.5021,
+        wasteType,
+        photoUrl,
+      });
+      navigation.navigate('ReportsList');
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to submit!');
+      setError(error.message || 'Failed to submit report');
     } finally {
       setLoading(false);
     }

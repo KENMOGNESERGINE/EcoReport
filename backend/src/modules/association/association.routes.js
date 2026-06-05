@@ -29,4 +29,27 @@ router.get(
   associationController.getAssociationCampaigns
 );
 
+const profileController = require('./association.profile.controller');
+
+// Profile routes
+router.get(
+  '/profile',
+  profileController.getFullProfile
+);
+
+router.put(
+  '/profile',
+  profileController.updateProfile
+);
+
+router.post(
+  '/profile/achievements',
+  profileController.addAchievement
+);
+
+router.get(
+  '/profile/achievements',
+  profileController.getAchievements
+);
+
 module.exports = router;

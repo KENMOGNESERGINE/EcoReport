@@ -38,5 +38,16 @@ router.post(
   '/reports/:reportId/assign',
   governmentController.assignToAgent
 );
+const profileController = require('./government.profile.controller');
 
+// Profile routes
+router.get(
+  '/profile',
+  profileController.getFullProfile
+);
+
+router.put(
+  '/profile',
+  profileController.updateProfile
+);
 module.exports = router;

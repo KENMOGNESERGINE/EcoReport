@@ -76,35 +76,74 @@ const createCampaignsTable = async () => {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `);
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS association_profiles (
+      id SERIAL PRIMARY KEY,
+      association_id INTEGER REFERENCES users(id) UNIQUE,
+      founded_year INTEGER,
+      zone VARCHAR(255),
+      members_count INTEGER DEFAULT 0,
+      mission TEXT,
+      waste_collected DECIMAL(10,2) DEFAULT 0,
+      phone VARCHAR(50),
+      website VARCHAR(255),
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS association_achievements (
+      id SERIAL PRIMARY KEY,
+      association_id INTEGER REFERENCES users(id),
+      title VARCHAR(255) NOT NULL,
+      description TEXT,
+      date TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS government_profiles (
+      id SERIAL PRIMARY KEY,
+      government_id INTEGER REFERENCES users(id) UNIQUE,
+      department VARCHAR(255),
+      jurisdiction VARCHAR(255),
+      phone VARCHAR(50),
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS redemptions (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id),
+      reward_type VARCHAR(100) NOT NULL,
+      points_spent INTEGER NOT NULL,
+      code VARCHAR(100),
+      status VARCHAR(50) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
 };
+
 const createReport = async (
-  title,
-  description,
-  userId,
-  latitude,
-  longitude,
-  photoUrl,
-  wasteType
+  title, description, userId,
+  latitude, longitude, photoUrl, wasteType
 ) => {
   const result = await db.query(
     `INSERT INTO reports
-     (title, description, 
+     (title, description,
       user_id, latitude, longitude,
       photo_url, waste_type)
      VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
-    [
-      title,
-      description,
-      userId,
-      latitude,
-      longitude,
-      photoUrl,
-      wasteType,
-    ]
+    [title, description, userId,
+     latitude, longitude, photoUrl, wasteType]
   );
   return result.rows[0];
 };
+
 const getAllReports = async (page = 1, limit = 10) => {
   const offset = (page - 1) * limit;
   const result = await db.query(
@@ -126,7 +165,9 @@ const getReportById = async (id) => {
 
 const getMyReports = async (userId) => {
   const result = await db.query(
-    'SELECT * FROM reports WHERE user_id = $1 ORDER BY created_at DESC',
+    `SELECT * FROM reports
+     WHERE user_id = $1
+     ORDER BY created_at DESC`,
     [userId]
   );
   return result.rows;
@@ -135,7 +176,8 @@ const getMyReports = async (userId) => {
 const updateReport = async (id, title, description, wasteType) => {
   const result = await db.query(
     `UPDATE reports
-     SET title=$1, description=$2, waste_type=$3, updated_at=NOW()
+     SET title=$1, description=$2,
+     waste_type=$3, updated_at=NOW()
      WHERE id=$4
      RETURNING *`,
     [title, description, wasteType, id]
@@ -214,8 +256,6 @@ const getComments = async (reportId) => {
   return result.rows;
 };
 
-
-// CORRECT ✅
 module.exports = {
   createReportsTable,
   createCampaignsTable,

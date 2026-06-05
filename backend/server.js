@@ -17,6 +17,8 @@ const { createUsersTable } = require('./src/modules/auth/auth.model');
 const { createReportsTable, createCampaignsTable } = require('./src/modules/reporting/reporting.model');
 const startNotificationConsumer = require('./src/events/consumers/notification.consumer');
 const startStatusConsumer = require('./src/events/consumers/status.consumer');
+const startRewardsConsumer = require('./src/events/consumers/rewards.consumer');
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -71,6 +73,7 @@ createUsersTable()
     console.log('✅ Campaigns table ready');
     startNotificationConsumer().catch(console.error);
     startStatusConsumer().catch(console.error);
+    startRewardsConsumer().catch(console.error);
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
