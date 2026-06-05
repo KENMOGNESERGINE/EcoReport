@@ -3,7 +3,18 @@ const router = express.Router();
 const rewardsController = require('./rewards.controller');
 const authMiddleware = require('../../middleware/auth');
 
-// All rewards routes need authentication
+// Public routes
+router.get(
+  '/leaderboard',
+  rewardsController.getLeaderboard
+);
+
+router.get(
+  '/catalog',
+  rewardsController.getRewardsCatalog
+);
+
+// Protected routes
 router.get(
   '/my-points',
   authMiddleware,
@@ -17,8 +28,15 @@ router.get(
 );
 
 router.get(
-  '/leaderboard',
-  rewardsController.getLeaderboard
+  '/my-redemptions',
+  authMiddleware,
+  rewardsController.getMyRedemptions
+);
+
+router.post(
+  '/redeem',
+  authMiddleware,
+  rewardsController.redeemReward
 );
 
 module.exports = router;
