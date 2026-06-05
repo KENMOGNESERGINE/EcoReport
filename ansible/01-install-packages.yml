@@ -1,0 +1,46 @@
+---
+- name: Install EcoReport Dependencies
+  hosts: ecoreport_servers
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install system packages
+      apt:
+        name: [curl, wget, git, nginx, ufw]
+        state: present
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+        state: present
+
+    - name: Install Docker
+      apt:
+        name: [docker-ce, docker-ce-cli, containerd.io]
+        state: present
+        update_cache: yes
+
+    - name: Start Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Allow ports in UFW
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+      loop: ["22", "80", "443", "3000"]
+
+    - name: Enable UFW
+      ufw:
+        state: enabled
+        policy: deny
