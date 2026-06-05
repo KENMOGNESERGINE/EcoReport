@@ -2,10 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Change this to your machine's local IP when testing on a physical device
 // e.g. 'http://192.168.1.100:5000'
-const BASE_URL = (typeof window !== 'undefined') ? 'http://localhost:3000' : 'http://192.168.1.128:3000';
+const BASE_URL = (typeof window !== 'undefined') ? 'http://93.127.139.4:10051' : 'http://192.168.1.128:3000';
 
 class ApiService {
-  BASE_URL = (typeof window !== "undefined") ? "http://localhost:3000" : "http://192.168.1.128:3000";
+  BASE_URL = (typeof window !== "undefined") ? "http://93.127.139.4:10051" : "http://192.168.1.128:3000";
   async getToken() {
     return await AsyncStorage.getItem('ecotrade_token');
   }
@@ -95,7 +95,7 @@ class ApiService {
       const headers = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
       // Do NOT set Content-Type - let browser set it with boundary for multipart
-      const res = await fetch(`${this.BASE_URL || 'http://localhost:3000'}/api/listings`, {
+      const res = await fetch(`${this.BASE_URL || 'http://93.127.139.4:10051'}/api/listings`, {
         method: 'POST', headers, body: form
       });
       const result = await res.json();
