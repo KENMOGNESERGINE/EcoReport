@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: kenmognesergine/ecoreport-backend:latest
+          image: nkeni/ecoreport-backend:latest
           ports:
             - containerPort: 3000
           envFrom:
