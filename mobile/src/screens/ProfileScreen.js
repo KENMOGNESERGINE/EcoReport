@@ -116,12 +116,16 @@ export default function ProfileScreen({ navigation, route }) {
     ]);
   };
 
-  const handleLogout = () => {
+ const handleLogout = () => {
+  if (typeof window !== 'undefined') {
+    if (window.confirm('Are you sure you want to log out?')) logout();
+  } else {
     Alert.alert('Log Out', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Log Out', style: 'destructive', onPress: logout },
     ]);
-  };
+  }
+};
 
   const TABS = [
     { key: 'profile', label: 'Profile' },

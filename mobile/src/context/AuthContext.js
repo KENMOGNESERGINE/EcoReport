@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { marketplaceService as api } from '../services/api';
+import { marketplaceService } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -13,37 +13,48 @@ export const AuthProvider = ({ children }) => {
   const restoreSession = async () => {
     try {
       const token = await AsyncStorage.getItem('ecotrade_token');
-      if (token) { const userData = await api.getMe(); setUser(userData); }
-    } catch { await AsyncStorage.removeItem('ecotrade_token'); }
-    finally { setLoading(false); }
+      if (token) {
+        const userData = await marketplaceService.getMe();
+        setUser(userData);
+      }
+    } catch {
+      await AsyncStorage.removeItem('ecotrade_token');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const login = async (email, password) => {
-    const res = await api.login({ email, password });
-    await api.setToken(res.token);
-    setUser(res.user);
+    const res = await marketplaceService.login({ email, password });
+    await marketplaceService.setToken(res.token);
     await AsyncStorage.setItem('token', res.token);
     await AsyncStorage.setItem('user', JSON.stringify(res.user));
+    setUser(res.user);
     return res.user;
   };
 
   const register = async (payload) => {
-    const res = await api.register(payload);
-    await api.setToken(res.token);
-    setUser(res.user);
+    const res = await marketplaceService.register(payload);
+    await marketplaceService.setToken(res.token);
     await AsyncStorage.setItem('token', res.token);
     await AsyncStorage.setItem('user', JSON.stringify(res.user));
+    setUser(res.user);
     return res.user;
   };
 
   const logout = async () => {
-    await api.removeToken();
+    await marketplaceService.removeToken();
     await AsyncStorage.removeItem('token');
     await AsyncStorage.removeItem('user');
     setUser(null);
   };
 
-  const refreshUser = async () => { const u = await api.getMe(); setUser(u); return u; };
+  const refreshUser = async () => {
+    const userData = await marketplaceService.getMe();
+    setUser(userData);
+    return userData;
+  };
+
   const token = user ? 'active' : null;
 
   return (

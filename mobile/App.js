@@ -4,7 +4,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
-import AuthScreen          from './src/screens/AuthScreen';
+import LoginScreen         from './src/features/auth/screens/LoginScreen';
+import RegisterScreen      from './src/features/auth/screens/RegisterScreen';
 import MarketplaceScreen   from './src/screens/MarketplaceScreen';
 import ListingDetailScreen from './src/screens/ListingDetailScreen';
 import CreateListingScreen from './src/screens/CreateListingScreen';
@@ -72,7 +73,7 @@ function RootNavigator() {
     return (
       <View style={styles.splash}>
         <Text style={styles.splashLogo}>♻ EcoReport</Text>
-        <Text style={styles.splashSub}>Waste Reporting and Recycling Marketplace</Text>
+        <Text style={styles.splashSub}>Waste Reporting & Recycling Marketplace</Text>
         <ActivityIndicator size="large" color="#7fffc4" style={{ marginTop: 24 }} />
       </View>
     );
@@ -80,7 +81,10 @@ function RootNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!user ? (
-        <Stack.Screen name="Auth" component={AuthScreen} />
+        <>
+          <Stack.Screen name="Auth"     component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+        </>
       ) : (
         <>
           <Stack.Screen name="Main"          component={MainTabs} />
