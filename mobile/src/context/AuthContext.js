@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 const AuthContext = createContext(null);
 
-const BASE = Platform.OS === 'web' ? 'http://93.127.139.4:10051' : 'http://192.168.1.128:3000';
+const BASE = Platform.OS === 'web' ? 'http://93.127.139.4:10051' : 'http://93.127.139.4:10051';
 
 const apiCall = async (method, endpoint, body = null) => {
   const token = await AsyncStorage.getItem('ecotrade_token');

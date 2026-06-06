@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE = 'http://localhost:3000';
+const BASE = 'http://93.127.139.4:10051';
 const GREEN = '#1a7a4a';
 
 const notify = (msg) => {

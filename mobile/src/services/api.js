@@ -2,10 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Change this to your machine's local IP when testing on a physical device
 // e.g. 'http://192.168.1.100:5000'
-const BASE_URL = (typeof window !== 'undefined') ? 'http://93.127.139.4:10051' : 'http://192.168.1.128:3000';
+const BASE_URL = (typeof window !== 'undefined') ? 'http://93.127.139.4:10051' : 'http://93.127.139.4:10051';
 
 class ApiService {
-  BASE_URL = (typeof window !== "undefined") ? "http://93.127.139.4:10051" : "http://192.168.1.128:3000";
+  BASE_URL = (typeof window !== "undefined") ? "http://93.127.139.4:10051" : "http://93.127.139.4:10051";
   async getToken() {
     return await AsyncStorage.getItem('ecotrade_token');
   }

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Image, Share } from 'react-native';
 import StatusBadge from './StatusBadge';
 import styles from './styles/ReportCard.styles';
 
-const BASE = 'http://localhost:3000';
+const BASE = 'http://93.127.139.4:10051';
 
 const getWasteIcon = (wasteType) => {
   switch (wasteType) {

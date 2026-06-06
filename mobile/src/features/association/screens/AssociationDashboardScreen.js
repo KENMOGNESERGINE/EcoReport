@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../../shared/context/AuthContext';
 
-const BASE = 'http://localhost:3000';
+const BASE = 'http://93.127.139.4:10051';
 const GREEN = '#1a7a4a';
 
 const apiCall = async (method, endpoint, body = null) => {

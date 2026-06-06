@@ -5,6 +5,9 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 
+// About
+import AboutUsScreen from './src/features/about/AboutUsScreen';
+
 // Auth
 import LoginScreen    from './src/features/auth/screens/LoginScreen';
 import RegisterScreen from './src/features/auth/screens/RegisterScreen';
@@ -68,12 +71,13 @@ function CitizenTabs() {
     <Tab.Navigator screenOptions={{ headerShown: false, tabBarShowLabel: false,
       tabBarStyle: { backgroundColor: COLORS.white, borderTopColor: COLORS.border, borderTopWidth: 1.5, height: Platform.OS === 'ios' ? 80 : 70, paddingBottom: Platform.OS === 'ios' ? 20 : 8 },
     }}>
-      <Tab.Screen name="Marketplace" component={MarketplaceScreen}   options={{ tabBarIcon: ({ focused }) => <TabIcon icon="🛒" label="Market"   focused={focused} /> }} />
-      <Tab.Screen name="Reports"     component={ReportingStack}       options={{ tabBarIcon: ({ focused }) => <TabIcon icon="♻️"  label="Reports"  focused={focused} /> }} />
-      <Tab.Screen name="New Report"  component={NewReportScreen}      options={{ tabBarIcon: ({ focused }) => <TabIcon icon="📍" label="Report"   focused={focused} /> }} />
-      <Tab.Screen name="Campaigns"   component={CampaignListScreen}   options={{ tabBarIcon: ({ focused }) => <TabIcon icon="📣" label="Campaigns" focused={focused} /> }} />
-      <Tab.Screen name="Sell"        component={CreateListingScreen}  options={{ tabBarIcon: ({ focused }) => <TabIcon icon="➕" label="Sell"      focused={focused} /> }} />
-      <Tab.Screen name="Profile"     component={ProfileScreen}        options={{ tabBarIcon: ({ focused }) => <TabIcon icon="👤" label="Profile"   focused={focused} /> }} />
+      <Tab.Screen name="Marketplace" component={MarketplaceScreen}   options={{ tabBarIcon: ({ focused }) => <TabIcon icon="🛒" label="Market"    focused={focused} /> }} />
+      <Tab.Screen name="Reports"     component={ReportingStack}       options={{ tabBarIcon: ({ focused }) => <TabIcon icon="♻️"  label="Reports"   focused={focused} /> }} />
+      <Tab.Screen name="New Report"  component={NewReportScreen}      options={{ tabBarIcon: ({ focused }) => <TabIcon icon="📍" label="Report"    focused={focused} /> }} />
+      <Tab.Screen name="Campaigns"   component={CampaignListScreen}   options={{ tabBarIcon: ({ focused }) => <TabIcon icon="📣" label="Campaigns"  focused={focused} /> }} />
+      <Tab.Screen name="Sell"        component={CreateListingScreen}  options={{ tabBarIcon: ({ focused }) => <TabIcon icon="➕" label="Sell"       focused={focused} /> }} />
+      <Tab.Screen name="Profile"     component={ProfileScreen}        options={{ tabBarIcon: ({ focused }) => <TabIcon icon="👤" label="Profile"    focused={focused} /> }} />
+      <Tab.Screen name="About"       component={AboutUsScreen}        options={{ tabBarIcon: ({ focused }) => <TabIcon icon="👥" label="About"      focused={focused} /> }} />
     </Tab.Navigator>
   );
 }
@@ -106,6 +110,7 @@ function AssociationTabs() {
       <Tab.Screen name="Reports"   component={AssocReportsStack}          options={{ tabBarIcon: ({ focused }) => <TabIcon icon="🗑️"  label="Reports"   focused={focused} /> }} />
       <Tab.Screen name="Campaigns" component={AssocCampaignsStack}        options={{ tabBarIcon: ({ focused }) => <TabIcon icon="📣" label="Campaigns"  focused={focused} /> }} />
       <Tab.Screen name="Profile"   component={ProfileScreen}              options={{ tabBarIcon: ({ focused }) => <TabIcon icon="👤" label="Profile"    focused={focused} /> }} />
+      <Tab.Screen name="About"     component={AboutUsScreen}              options={{ tabBarIcon: ({ focused }) => <TabIcon icon="👥" label="About"      focused={focused} /> }} />
     </Tab.Navigator>
   );
 }
@@ -129,6 +134,7 @@ function GovernmentTabs() {
       <Tab.Screen name="Reports"   component={GovReportsStack}           options={{ tabBarIcon: ({ focused }) => <TabIcon icon="🗑️"  label="Reports"   focused={focused} /> }} />
       <Tab.Screen name="Stats"     component={GovernmentStatsScreen}     options={{ tabBarIcon: ({ focused }) => <TabIcon icon="📈" label="Stats"      focused={focused} /> }} />
       <Tab.Screen name="Profile"   component={ProfileScreen}             options={{ tabBarIcon: ({ focused }) => <TabIcon icon="👤" label="Profile"    focused={focused} /> }} />
+      <Tab.Screen name="About"     component={AboutUsScreen}             options={{ tabBarIcon: ({ focused }) => <TabIcon icon="👥" label="About"      focused={focused} /> }} />
     </Tab.Navigator>
   );
 }

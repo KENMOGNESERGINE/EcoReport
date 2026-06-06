@@ -8,7 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 
-const BASE = Platform.OS === 'web' ? 'http://localhost:3000' : 'http://192.168.1.128:3000';
+const BASE = Platform.OS === 'web' ? 'http://93.127.139.4:10051' : 'http://93.127.139.4:10051';
 
 const COLORS = {
   green: '#1a7a4a', greenLight: '#e8f5ee', greenDark: '#0d4a28',
